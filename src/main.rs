@@ -2,6 +2,7 @@ use std::net::SocketAddr;
 use tokio::net::TcpListener;
 
 pub mod models;
+pub mod utils;
 
 mod service;
 mod routes;

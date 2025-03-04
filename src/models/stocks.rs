@@ -2,8 +2,9 @@ use std::collections::BTreeMap;
 use serde_json;
 use serde::{Serialize, Deserialize};
 
-pub struct Stock<'a> {
-    pub ticker: &'a str,
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Stock {
+    pub ticker: String,
     pub data: BTreeMap<String, StockData>,
 }
 
