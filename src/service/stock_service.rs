@@ -17,11 +17,9 @@ pub async fn query_api(ticker: &str, year_month: &str) -> Result<Stock, ApiError
 
     let mut parsed_data: serde_json::Value = 
         reqwest::get(url)
-        .await
-        .unwrap()
+        .await?
         .json()
-        .await
-        .unwrap();
+        .await?;
 
     let time_series = match parsed_data.get("Time Series (5min)") {
         Some(value) => value.clone(),
@@ -33,11 +31,9 @@ pub async fn query_api(ticker: &str, year_month: &str) -> Result<Stock, ApiError
 
             parsed_data = 
                 reqwest::get(url)
-                .await
-                .unwrap()
+                .await?
                 .json()
-                .await
-                .unwrap();
+                .await?;
 
             if let Some(data) = parsed_data.get("Time Series (5min)") {
                 data.clone()
@@ -51,7 +47,7 @@ pub async fn query_api(ticker: &str, year_month: &str) -> Result<Stock, ApiError
 
     let mut stock_data : BTreeMap<String, StockData> = BTreeMap::new();
 
-    let m : HashMap<String, StockData> = serde_json::from_value(time_series).unwrap();
+    let m : HashMap<String, StockData> = serde_json::from_value(time_series)?;
 
     for (key, value) in m {
         stock_data.insert(key, value);
