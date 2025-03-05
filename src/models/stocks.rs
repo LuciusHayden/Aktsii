@@ -22,18 +22,9 @@ pub struct StockData {
     volume: u32, 
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+#[derive(Serialize, Deserialize)]
+pub struct Query{
+    pub ticker: String,
+}
 
 

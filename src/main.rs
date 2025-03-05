@@ -3,9 +3,9 @@ use tokio::net::TcpListener;
 
 pub mod models;
 pub mod utils;
+pub mod routes;
 
 mod service;
-mod routes;
 
 #[tokio::main]
 async fn main() {
