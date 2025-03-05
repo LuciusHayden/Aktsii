@@ -1,5 +1,5 @@
 use reqwest;
-use std::collections::BTreeMap;
+use std::collections::{HashMap, BTreeMap};
 use serde_json::json;
 
 use crate::utils::config::Config;
@@ -23,36 +23,41 @@ pub async fn query_api(ticker: &str, year_month: &str) -> Result<Stock, ApiError
         .await
         .unwrap();
 
-    let mut time_series = parsed_data.get("Time Series (5min)").unwrap().clone();
+    let time_series = match parsed_data.get("Time Series (5min)") {
+        Some(value) => value.clone(),
+        None => {
+            let url = &URL
+                .replace("{TKR}", ticker)
+                .replace("{YEAR_MONTH}", year_month)
+                .replace("{API_KEY}", &config.backup_alpha_vantage_key);
 
-    // just in case first api key doesnt work
-    if time_series.is_null() {
-        let url = &URL
-            .replace("{TKR}", ticker)
-            .replace("{YEAR_MONTH}", year_month)
-            .replace("{API_KEY}", &config.backup_alpha_vantage_key);
+            parsed_data = 
+                reqwest::get(url)
+                .await
+                .unwrap()
+                .json()
+                .await
+                .unwrap();
 
-        parsed_data = 
-            reqwest::get(url)
-            .await
-            .unwrap()
-            .json()
-            .await
-            .unwrap();
+            if let Some(data) = parsed_data.get("Time Series (5min)") {
+                data.clone()
+            } else if parsed_data.to_string().contains("rate limit"){
+                return Err(ApiError::AlphaVantageError) 
+            } else {
+                return Err(ApiError::AlphaVantageError) 
+            }
+        }
+    };
 
-        time_series = parsed_data.get("Time Series (5min)").unwrap().clone();
+    let mut stock_data : BTreeMap<String, StockData> = BTreeMap::new();
+
+    let m : HashMap<String, StockData> = serde_json::from_value(time_series).unwrap();
+
+    for (key, value) in m {
+        stock_data.insert(key, value);
     }
 
-    if !time_series.is_null() {
-        let stock_data: BTreeMap<String, StockData> = serde_json::from_value(time_series).iter().map(|(timestamp, data): &(String, serde_json::Value)| {
-            let data: StockData = serde_json::from_value(data.clone()).unwrap();
-            (timestamp.to_string().clone(), data)
-        }).collect();
-
-        Ok(Stock {ticker: ticker.to_string(), data: stock_data })
-    } else {
-        Err(ApiError::AlphaVantageError) 
-    }
+    Ok(Stock {ticker: ticker.to_string(), data: stock_data })
 }
 
 #[cfg(test)]
