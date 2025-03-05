@@ -6,8 +6,6 @@ use crate::utils::config::Config;
 use crate::models::stocks::{StockData, Stock};
 use crate::routes::error::ApiError;
 
-use std::io;
-
 const URL: &str = "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol={TKR}&interval=5min&month={YEAR_MONTH}&outputsize=full&apikey={API_KEY}";
 
 pub async fn query_api(ticker: &str, year_month: &str) -> Result<Stock, ApiError> {
@@ -17,16 +15,34 @@ pub async fn query_api(ticker: &str, year_month: &str) -> Result<Stock, ApiError
         .replace("{YEAR_MONTH}", year_month)
         .replace("{API_KEY}", &config.alpha_vantage_api_key);
 
-    let parsed_data = 
-        json!(reqwest::get(url)
+    let mut parsed_data: serde_json::Value = 
+        reqwest::get(url)
         .await
         .unwrap()
-        .text()
+        .json()
         .await
-        .unwrap()
-        .replace("\"", ""));
+        .unwrap();
 
-    let time_series = parsed_data["Time Series (5min)"].clone();
+    let mut time_series = parsed_data.get("Time Series (5min)").unwrap().clone();
+
+    // just in case first api key doesnt work
+    if time_series.is_null() {
+        let url = &URL
+            .replace("{TKR}", ticker)
+            .replace("{YEAR_MONTH}", year_month)
+            .replace("{API_KEY}", &config.backup_alpha_vantage_key);
+
+        parsed_data = 
+            reqwest::get(url)
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+
+        time_series = parsed_data.get("Time Series (5min)").unwrap().clone();
+    }
+
     if !time_series.is_null() {
         let stock_data: BTreeMap<String, StockData> = serde_json::from_value(time_series).iter().map(|(timestamp, data): &(String, serde_json::Value)| {
             let data: StockData = serde_json::from_value(data.clone()).unwrap();
