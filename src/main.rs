@@ -11,7 +11,9 @@ mod service;
 async fn main() {
 
     let app = routes::api::task_routes().await;
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
+
+    let addr = SocketAddr::from(([0, 0, 0, 0], 5000));
+    let listener = tokio::net::TcpListener::bind(addr)
         .await
         .unwrap();
 
