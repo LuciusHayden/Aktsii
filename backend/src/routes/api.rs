@@ -32,6 +32,3 @@ async fn get_stock_data(Json(payload) : Json<Query>) -> Result<Json<Stock>, ApiE
     Ok(Json(response))
 }
 
-
-
-
